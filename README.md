@@ -5,9 +5,9 @@ tool_get_simplified_chinese_variant_characters
 raw/raw.txt
 
 # usage
-./filter.py <InputFilePath>  
+./filter.py \<InputFilePath\>  
 e.g.:  
-```
+```sh
 ./filter.py raw/raw.txt
 ```
 
