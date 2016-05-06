@@ -1,0 +1,2 @@
+# tool_get_simplified_chinese_variant_characters
+tool_get_simplified_chinese_variant_characters
