@@ -4,27 +4,28 @@ import sys
 import os
 import codecs
 import re
-import pdb
+#  import pdb
 
 ################################################################################
 # Usage
 ################################################################################
 class FileFilter():
-  def __init__(self, aInputFilePath, aSeparatorLeft, aSeparatorRight, aOutputFilePath):
+  def __init__(self, aInputFilePath, aOutputFilePath):
     print "aInputFilePath:%s" % (aInputFilePath)
-    print "aSeparatorLeft:%s" % (aSeparatorLeft)
-    print "aSeparatorRight:%s" % (aSeparatorRight)
     print "aOutputFilePath:%s" % (aOutputFilePath)
 
     # Open result file
     self._resultFile = codecs.open(aOutputFilePath, "w+", "utf-8")
+    self._logFile = codecs.open(aOutputFilePath + ".log", "w+", "utf-8")
     # Open input file
     file = open(aInputFilePath)
 
+    # Private variables
     self._foundFirstSection = False
     self._section = ''
     self._pronounce = ''
     self._lineNumber = 0
+
     for query in file:
       self._lineNumber += 1
 
@@ -47,31 +48,42 @@ class FileFilter():
         else:
           self._foundFirstSection = True
 
+      # Found new sections
       if (query <= 'Z') and (query >= 'A'):
         self._section = query
         print "[%d]Found new section:%s" % (self._lineNumber, self._section)
         continue
 
+      # Found new pronounces
       if (query[0] <= 'z') and (query[0] >= 'a'):
         self._pronounce = query
         print "[%d]Found new pronounce:%s" % (self._lineNumber, self._pronounce)
         continue
 
+      # Skip Non-Chinese line
       if (self.HasChineseCharacter(query) == False):
         print "Skip Non-Chinese line [%d]:%s" % (self._lineNumber, query)
         continue;
 
-      # Start to extract Chinese characters with format A〔B[C|D|...]〕, assume A-Z is Chinese characters.
-      # And generate final result string
+      # Start to extract Chinese characters with format A〔B[C|D|...]〕, assume
+      # A-Z is Chinese characters, and generate final_result string
       print "[%d]:%s" % (self._lineNumber, query)
       result = self._pronounce + ","
-
       for char in query.decode('utf-8'):
-        print char
-        if (char >= u'\u4e00' and char <= u'\u9fff'):
+        # Tell if this character in CJK_Unified_Ideographs_(Unicode_block)
+        # [References]
+        # https://en.wikipedia.org/wiki/CJK_Unified_Ideographs
+        # https://en.wikipedia.org/wiki/CJK_Unified_Ideographs_(Unicode_block)
+        if ((char >= u'\u4e00' and char <= u'\u9fff')         or # CJK Unified Ideographs
+            (char >= u'\u3400' and char <= u'\u4dbf')         or # CJK Unified Ideographs Extension A
+            (char >= u'\U00020000' and char <= u'\U0002a6df')    # CJK Unified Ideographs Extension B
+           ):
           result += char.encode('utf-8') + ","
+        else:
+          print >> self._logFile, "@@@:%c" % (char)
+
       length = len(result)
-      final_result = result[:length-1]
+      final_result = result[:length-1] # '-1' is to remove the last ','
       print final_result
       print
 
@@ -83,14 +95,20 @@ class FileFilter():
 
   def HasChineseCharacter(self, aString):
     for char in aString.decode('utf-8'):
-      if (char >= u'\u4e00' and char <= u'\u9fff'):
+      # Tell if this character in CJK_Unified_Ideographs_(Unicode_block)
+      # [References]
+      # https://en.wikipedia.org/wiki/CJK_Unified_Ideographs
+      # https://en.wikipedia.org/wiki/CJK_Unified_Ideographs_(Unicode_block)
+      if ((char >= u'\u4e00' and char <= u'\u9fff')         or # CJK Unified Ideographs
+          (char >= u'\u3400' and char <= u'\u4dbf')         or # CJK Unified Ideographs Extension A
+          (char >= u'\U00020000' and char <= u'\U0002a6df')    # CJK Unified Ideographs Extension B
+         ):
         return True
     return False;
 
 def show_usage():
-  #  print "Usage: ", sys.argv[0], "<InputFilePath> <Separator, e.g. '|', ';', ',', etc.> <OutputFilePath>"
   print "Usage: ", sys.argv[0], "<InputFilePath>"
-  pdb.set_trace()
+  #  pdb.set_trace()
 
 # ----------------------------------
 # -------------- Main --------------
@@ -106,8 +124,7 @@ if __name__ == "__main__":
     show_usage()
     sys.exit(1)
 
-  separatorLeft = '〔'.decode('utf-8')
-  separatorRight = '〕'.decode('utf-8')
   outputFilePath = "output/chinese_variant_characters.txt"
 
-  FileFilter(inputFilePath, separatorLeft, separatorRight, outputFilePath)
+  FileFilter(inputFilePath, outputFilePath)
+
