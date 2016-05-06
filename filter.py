@@ -39,7 +39,6 @@ class FileFilter():
         #  print "\nSkip empty line [%d]" % (self._lineNumber)
         continue
 
-
       # Skip line before first section
       if (self._foundFirstSection == False):
         if (query != 'A'):
@@ -51,25 +50,36 @@ class FileFilter():
       if (query <= 'Z') and (query >= 'A'):
         self._section = query
         print "[%d]Found new section:%s" % (self._lineNumber, self._section)
+        continue
 
       if (query[0] <= 'z') and (query[0] >= 'a'):
         self._pronounce = query
         print "[%d]Found new pronounce:%s" % (self._lineNumber, self._pronounce)
+        continue
 
-      #  pdb.set_trace()
-      continue
-      print "\n[%d]:%s" % (self._lineNumber, query)
-
-      # Re-Construct the input query string
-      self._inputList = query.split(aSeparatorLeft, 13)
-      poiName = self._inputList[1].strip(' ')
-      # Non-Chinese query string will be skipped
-      if (self.HasChineseCharacter(poiName) == False):
-        # print "Skip Compressed Poi Header Non-Chinese [%d]:%s" % (self._lineNumber, query)
+      if (self.HasChineseCharacter(query) == False):
+        print "Skip Non-Chinese line [%d]:%s" % (self._lineNumber, query)
         continue;
 
+      # Start to extract Chinese characters with format A〔B[C|D|...]〕, assume A-Z is Chinese characters.
+      # And generate final result string
+      print "[%d]:%s" % (self._lineNumber, query)
+      result = self._pronounce + ","
+
+      for char in query.decode('utf-8'):
+        print char
+        if (char >= u'\u4e00' and char <= u'\u9fff'):
+          result += char.encode('utf-8') + ","
+      length = len(result)
+      final_result = result[:length-1]
+      print final_result
+      print
+
+      #  pdb.set_trace()
+      #  continue
+
       # Write this query line to new file
-      print >> self._resultFile, "%s" % (query.decode('utf-8'))
+      print >> self._resultFile, "%s" % (final_result.decode('utf-8'))
 
   def HasChineseCharacter(self, aString):
     for char in aString.decode('utf-8'):
@@ -96,8 +106,8 @@ if __name__ == "__main__":
     show_usage()
     sys.exit(1)
 
-  separatorLeft = "〔".decode('utf-8')
-  separatorRight = "〕".decode('utf-8')
+  separatorLeft = '〔'.decode('utf-8')
+  separatorRight = '〕'.decode('utf-8')
   outputFilePath = "output/chinese_variant_characters.txt"
 
   FileFilter(inputFilePath, separatorLeft, separatorRight, outputFilePath)
